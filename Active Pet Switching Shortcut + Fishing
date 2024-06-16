@@ -1,8 +1,7 @@
 // ==UserScript==
-// @name         Neopets - Active Pet Switch & Fishing Vortex Plus <MettyNeo>
-// @version      2.7
-// @description  APS adds a button to the sidebar that lets you easily switch your active pet. FVP adds additional info to the fishing vortex
-// @author       Metamagic
+// @name         Neopets - Active Pet Switcher in Toolbar, modified from MettyNeo's script
+// @description  APS adds a button to the toolbar that lets you easily switch your active pet.
+// @author       Chanakin
 // @match        *://*.neopets.com/*
 // @icon         https://i.imgur.com/RnuqLRm.png
 // @grant        GM_getValue
@@ -26,25 +25,6 @@
 //===========
 //collected page data times out after this many hours. default: -1 (aka never)
 const HOME_DATA_TIMEOUT = -1
-
-//===========
-// FVP config
-//===========
-//changes the display mode
-// -1 = disable display entirely. still tracks enabled info.
-// 0 = display table on fishing page w/o fishing info
-// 1 = display table on fishing page, plus fishing info (default)
-// 2 = display fishing info on all pages' pet table
-const FISHING_DISPLAY_MODE = 1
-  //tracks and displays pet fishing levels
-  const FISHING_LEVEL_TRACK = true
-  //tracks time since last fishing reward
-  const FISHING_TIME_TRACK = true
-    //tracks fishing xp gained and displays level up chance based on /u/neo_truths' post
-    //https://old.reddit.com/r/neopets/comments/xqylkt/ye_olde_fishing_vortex/
-    const FISHING_XP_TRACK = true
-//for my mom who keeps accidentally clicking it then getting confused
-const REMOVE_CAST_BUTTON = true
 
 //==============
 // main function
