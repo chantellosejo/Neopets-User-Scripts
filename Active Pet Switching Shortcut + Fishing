@@ -1,0 +1,261 @@
+
+Tampermonkey® by Jan Biniok
+v5.1.0
+	
+Neopets - Active Pet Switch & Fishing Vortex Plus (modified by Chanakin)
+by Metamagic, with modifications by chanakin
+
+22
+
+// Trans rights are human rights ^^
+
+23
+
+// metty says hi
+
+24
+
+​
+
+25
+
+//===========
+
+26
+
+// APS config
+
+27
+
+//===========
+
+28
+
+//collected page data times out after this many hours. default: -1 (aka never)
+
+29
+
+const HOME_DATA_TIMEOUT = -1
+
+30
+
+​
+
+31
+
+//===========
+
+32
+
+// FVP config
+
+33
+
+//===========
+
+34
+
+//changes the display mode
+
+35
+
+// -1 = disable display entirely. still tracks enabled info.
+
+36
+
+// 0 = display table on fishing page w/o fishing info
+
+37
+
+// 1 = display table on fishing page, plus fishing info (default)
+
+38
+
+// 2 = display fishing info on all pages' pet table
+
+39
+
+const FISHING_DISPLAY_MODE = 1
+
+40
+
+  //tracks and displays pet fishing levels
+
+41
+
+  const FISHING_LEVEL_TRACK = true
+
+42
+
+  //tracks time since last fishing reward
+
+43
+
+  const FISHING_TIME_TRACK = true
+
+44
+
+    //tracks fishing xp gained and displays level up chance based on /u/neo_truths' post
+
+45
+
+    //https://old.reddit.com/r/neopets/comments/xqylkt/ye_olde_fishing_vortex/
+
+46
+
+    const FISHING_XP_TRACK = true
+
+47
+
+//for my mom who keeps accidentally clicking it then getting confused
+
+48
+
+const REMOVE_CAST_BUTTON = true
+
+49
+
+​
+
+50
+
+//==============
+
+51
+
+// main function
+
+52
+
+//==============
+
+53
+
+​
+
+54
+
+const url = document.location.href
+
+55
+
+//check for the top left pet icon to know we're in beta
+
+56
+
+let isBeta = false
+
+57
+
+if($("[class^='nav-pet-menu-icon']").length) isBeta = true
+
+58
+
+let timeoutId = null
+
+59
+
+​
+
+60
+
+if(url.includes("neopets.com/home")) {
+
+61
+
+    getPetData(document) //always update the data while we're here
+
+62
+
+    //close if flagged to
+
+63
+
+    let timeout = GM_getValue("stackpath-timeout")
+
+64
+
+    if(timeout) {
+
+65
+
+        GM_deleteValue("stackpath-timeout")
+
+66
+
+        //wont close tab after 15 second timeout
+
+67
+
+        if(new Date().valueOf() - timeout < 1000*15) window.close()
+
+68
+
+    }
+
+69
+
+}
+
+70
+
+​
+
+71
+
+if(url.includes("water/fishing.phtml")) {
+
+72
+
+    handleFishingVortex()
+
+73
+
+}
+
+74
+
+​
+
+75
+
+createMenuButton() //adds the button to open the menu
+
+76
+
+listenForPetUpdates() //adds a listener for updates to the script's stored pet list, which then updates the menu
+
+77
+
+​
+
+78
+
+​
+
+79
+
+//=========
+
+80
+
+// overhead
+
+81
+
+//=========
+
+82
+
+​
+
+83
+
+function requestHomePage() {
+
+Tampermonkey 5.1.1 is available.
+Please re-start your browser to start the update!
+Tam - Your service bot
+Do you need help finding Tampermonkey's console output?
+Disable
+Tampermonkey Bot
