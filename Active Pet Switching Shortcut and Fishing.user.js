@@ -1,7 +1,9 @@
 // ==UserScript==
-// @name         Neopets - Active Pet Switcher in Toolbar, modified from MettyNeo's script
-// @description  APS adds a button to the toolbar that lets you easily switch your active pet.
-// @author       Chanakin
+// @name         Neopets - Active Pet Switch & Fishing Vortex Plus (modified by Chanakin)
+// @version      3.0
+// @description  APS adds a button that lets you easily switch your active pet. In the classic theme, this will appear underneath your pet's image in the sidebar. In beta, it will appear next to the icons
+//               that float at the top of every page (Bookmarks, Favorites, Shop Wizard). FVP adds additional info to the fishing vortex.
+// @author       Metamagic, with modifications by chanakin
 // @match        *://*.neopets.com/*
 // @icon         https://i.imgur.com/RnuqLRm.png
 // @grant        GM_getValue
@@ -25,6 +27,25 @@
 //===========
 //collected page data times out after this many hours. default: -1 (aka never)
 const HOME_DATA_TIMEOUT = -1
+
+//===========
+// FVP config
+//===========
+//changes the display mode
+// -1 = disable display entirely. still tracks enabled info.
+// 0 = display table on fishing page w/o fishing info
+// 1 = display table on fishing page, plus fishing info (default)
+// 2 = display fishing info on all pages' pet table
+const FISHING_DISPLAY_MODE = 1
+  //tracks and displays pet fishing levels
+  const FISHING_LEVEL_TRACK = true
+  //tracks time since last fishing reward
+  const FISHING_TIME_TRACK = true
+    //tracks fishing xp gained and displays level up chance based on /u/neo_truths' post
+    //https://old.reddit.com/r/neopets/comments/xqylkt/ye_olde_fishing_vortex/
+    const FISHING_XP_TRACK = true
+//for my mom who keeps accidentally clicking it then getting confused
+const REMOVE_CAST_BUTTON = true
 
 //==============
 // main function
@@ -123,15 +144,25 @@ function listenForPetUpdates() {
 //=================
 
 function createMenuButton() {
-    let e = getButtonLocation()
-    if(e) {
+    let parentElement = getButtonLocation()
+
+    if(parentElement) {
+        var changeActivePetShortcut
+
+        if (isBeta) {
+            changeActivePetShortcut = createShortcutIcon("#", "https://images.neopets.com/themes/h5/constellations/images/mypets-icon.svg")
+        }
+        else {
+            changeActivePetShortcut = document.createElement("a")
+            changeActivePetShortcut.href = "#"
+            changeActivePetShortcut.innerHTML = "Change Active Pet"
+
+        }
+
         addCSS()
-        let link = document.createElement("a")
-        link.href = "#"
-        link.classList.add("openmenubutton")
-        link.innerHTML = "Change Active Pet"
-        link.addEventListener("click", ()=>{openMenu()})
-        e.appendChild(link)
+        changeActivePetShortcut.classList.add("openmenubutton")
+        changeActivePetShortcut.addEventListener("click", ()=>{openMenu()})
+        parentElement.appendChild(changeActivePetShortcut);
         createMenu() //only adds menu to pages with buttons
     }
 }
@@ -481,8 +512,9 @@ function getActivePet() {
     else return $("#content > table > tbody > tr > td.sidebar > div:nth-child(1) > table > tbody > tr:nth-child(1) > td > a > b")[0].innerHTML
 }
 
+
 function getButtonLocation() {
-    if(isBeta) var e = $("#navprofiledropdown__2020 > div:nth-child(4)")
+    if(isBeta) var e = $(".navsub-left__2020")
     else e = $(".activePet")
     if(e.length) return e[0]
     else return null
@@ -494,49 +526,28 @@ function getButtonLocation() {
 //========
 
 function addCSS() {
+    var theme
+    var button
+    var text
+
     if(isBeta) {
-        var theme = $(".nav-profile-dropdown__2020").css("background-color")
-        var button = $(".nav-profile-dropdown-text").css("color")
-        var text = $(".nav-profile-dropdown-text a.text-muted").css("color")
+       theme = $(".nav-profile-dropdown__2020").css("background-color")
+       button = $(".nav-profile-dropdown-text").css("color")
+       text = $(".nav-profile-dropdown-text a.text-muted").css("color")
+
+       document.head.appendChild(document.createElement("style")).innerHTML = `
+        .openmenubutton {
+            height: 25px;
+            width: 30px;
+
+        }
+        `
     }
     else {
         theme = $("#content > table > tbody > tr > td.sidebar > div:nth-child(1) > table > tbody > tr:nth-child(1) > td").css("background-color")
         button = "gray";
         text = "black";
-    }
 
-    if(isBeta) {
-        document.head.appendChild(document.createElement("style")).innerHTML = `
-        .openmenubutton {
-            border: 2px solid ${text};
-            color: ${text} !important;
-            background-color: ${button};
-            cursor: pointer;
-            font-size: 11pt;
-            padding: 1px 0px 1px;
-            width: 90%;
-            height: 20px;
-            display: block;
-            font-weight: normal;
-            text-align: center;
-            transition-duration: 0.3s;
-            border-radius: 4px;
-            box-shadow: 0 5px rgba(0,0,0,0.5);
-        }
-        .openmenubutton:hover {
-            border: 2px solid ${text.slice(0,-1)+", 0.85)"};
-            color: ${text.slice(0,-1)+", 0.85)"} !important;
-            background-color: ${button.slice(0,-1)+", 0.7)"};
-        }
-        .openmenubutton:active {
-            border: 2px solid ${theme};
-            background-color: ${button.slice(0,-1)+", 0.5)"};
-            box-shadow: 0 2px rgba(0,0,0,0.5);
-            transform: translateY(2px);
-        }
-        `
-    }
-    else {
         document.head.appendChild(document.createElement("style")).innerHTML = `
         .openmenubutton {
             margin-top: 3px;
@@ -561,6 +572,9 @@ function addCSS() {
     }
 
     document.head.appendChild(document.createElement("style")).innerHTML = `
+        .shortcut {
+            margin-left: 8px;
+        }
         .vertical {
             display: flex;
             flex-direction: column;
@@ -640,14 +654,7 @@ function addCSS() {
             -ms-user-select: none;
             user-select: none;
         }
-        .activetable td div:not(.fishingdisplay) {
-            margin: 0;
-            padding: 0;
-            width: 170px !important;
-            -webkit-user-select: none;
-            -ms-user-select: none;
-            user-select: none;
-        }
+
         .activetable td:hover {
             background-color: #c9e3b3;
         }
@@ -683,16 +690,7 @@ function addCSS() {
         .activetable td[active] img {
             opacity: 0.3;
         }
-        td[active] > div.fishingdisplay::after {
-            width: 40px;
-            height: 40px;
-            display: block;
-            position: absolute;
-            border-radius: 50%;
-            content: "";
-            background-color: black;
-            opacity: 0.5;
-        }
+
         .leveldisplay {
             border-radius: 50%;
             width: 40px;
@@ -832,4 +830,14 @@ function addCSS() {
         }
     }
     `
+}
+
+function createShortcutIcon(link, iconUrl, cssClasses) {
+    var htmlForIcon = "<div style=\"display: inline-block;\"><img style=\"height: 30px; width: 30px;\" class=\"" + cssClasses + "\" src=\"" + iconUrl + "\"/></div>"
+
+    var addedIcon = document.createElement('a')
+    addedIcon.href = link
+    addedIcon.innerHTML = htmlForIcon
+
+    return addedIcon
 }
