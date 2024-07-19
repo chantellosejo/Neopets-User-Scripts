@@ -3,12 +3,15 @@
 // @namespace    neopets
 // @version      1.4
 // @description  Highlights and selects pre-determined option for items on the Quick Stock Page based on their categorization.
-//               Currently covers red codestones, tan codestones, Giant Space Fungus drops, rare omelettes, and The Coincidence quest items.
+//               Currently covers red codestones, tan codestones, Giant Space Fungus drops, rare omelettes The Coincidence quest items, 
+//               The Void Within Battledome & Neohospital Pools, and rare valuable items (paint brushes, morphing potions, transmog potions),
+//               and Underwater Fishing.
 // @author       chanakin
 // @match        https://www.neopets.com/quickstock.phtml
 // @grant        none
+// @license MIT
 // ==/UserScript==
-
+ 
 const TVW_DISCARD_ITEMS = [
     "Angel Hair Salad",
     "Doctor",
@@ -25,14 +28,14 @@ const TVW_DISCARD_ITEMS = [
     "Walking Cane with Spikes",
     "Weighted Blanket",
 ];
-
+ 
 const TVW_DEPOSIT_ITEMS = [
     "Leaded Elemental Vial",
     "Bullseye Potion",
     "A Guide to Find the Right Cure",
     "Neopian Hospital Stamp",
 ];
-
+ 
 const TVW_SELL_ITEMS = [
     "Bubbling Healing Goo",
     "Faerie Healing Dust",
@@ -40,7 +43,7 @@ const TVW_SELL_ITEMS = [
     "Peppermint Stomach Medicine",
     "Yellow Healthshroom",
 ];
-
+ 
 const RED_CODESTONES = [
     "Mag Codestone",
     "Kew Codestone",
@@ -49,7 +52,7 @@ const RED_CODESTONES = [
     "Sho Codestone",
     "Vux Codestone"
 ];
-
+ 
 const TAN_CODESTONES = [
     "Main Codestone",
     "Eo Codestone",
@@ -62,7 +65,7 @@ const TAN_CODESTONES = [
     "Zei Codestone",
     "Vo Codestone",
 ];
-
+ 
 const RARE_OMELETTES = [
     "Tomato and Pepper Omelette",
     "1/3 Tomato and Pepper Omelette",
@@ -98,7 +101,7 @@ const RARE_OMELETTES = [
     "1/3 Sausage and Pepperoni Omelette",
     "2/3 Sausage and Pepperoni Omelette"
 ]
-
+ 
 const UNDERWATER_FISHING_DISCARD_ITEMS = [
     "Giant Brown Kelp",
     "Giant Green Kelp",
@@ -189,7 +192,7 @@ const UNDERWATER_FISHING_DISCARD_ITEMS = [
     "Transparifish",
     "Neopet-Eating Carp"
 ]
-
+ 
 const UNDERWATER_FISHING_SELL_ITEMS = [
     "Dead Bonfire",
     "Fishing Made Easy",
@@ -227,13 +230,13 @@ const UNDERWATER_FISHING_SELL_ITEMS = [
     "Waterfish",
     "Landfish",
 ]
-
+ 
 const UNDERWATER_FISHING_DEPOSIT_ITEMS = [
     "Irritable Genie-in-a-Bottle",
     "Mysterious Swirly Potion",
     "Flask of Rainbow Fountain Water",
 ]
-
+ 
 const COINCIDENCE_STANDARD_POOL_QUEST_ITEMS = [
     "Blandfish",
     "Box of Wheat Flakes",
@@ -256,7 +259,7 @@ const COINCIDENCE_STANDARD_POOL_QUEST_ITEMS = [
     "Waterfish",
     "Yellow Growth"
 ];
-
+ 
 const COINCIDENCE_ALTERNATIVE_POOL_QUEST_ITEMS = [
     "Acara Acrobat Plushie",
     "Adventures In Space",
@@ -540,7 +543,7 @@ const COINCIDENCE_ALTERNATIVE_POOL_QUEST_ITEMS = [
     "Darkberry Cheese",
     "Amulet of Darkness"
 ];
-
+ 
 const GIANT_SPACE_FUNGUS_DISCARD_ITEMS = [
     "Scroll of Supernova",
     "Scroll of Ultranova",
@@ -562,14 +565,14 @@ const GIANT_SPACE_FUNGUS_DISCARD_ITEMS = [
     "Space Fungus Sundae",
     "Baby Space Fungus"
 ]
-
+ 
 const GIANT_SPACE_FUNGUS_SELL_ITEMS = [
     "Red Neocola Token",
     "Blue Neocola Token",
     "Green Neocola Token",
     "Scroll of Dark Nova",
 ]
-
+ 
 const GIANT_SPACE_FUNGUS_DEPOSIT_ITEMS = [
     "Bubbling Fungus",
     "Aluminium Nerkmid",
@@ -593,20 +596,20 @@ const GIANT_SPACE_FUNGUS_DEPOSIT_ITEMS = [
     "Ultra Nerkmid",
     "Ultra Platinum Nerkmid"
 ]
-
+ 
 const GIANT_SPACE_FUNGUS_DROPS = GIANT_SPACE_FUNGUS_DEPOSIT_ITEMS.concat(
     GIANT_SPACE_FUNGUS_SELL_ITEMS, GIANT_SPACE_FUNGUS_DISCARD_ITEMS)
-
+ 
 const UNDERWATER_FISHING_POOL = UNDERWATER_FISHING_DEPOSIT_ITEMS.concat(UNDERWATER_FISHING_SELL_ITEMS, UNDERWATER_FISHING_DISCARD_ITEMS)
-
+ 
 const TVW_POOL = TVW_SELL_ITEMS.concat(TVW_DEPOSIT_ITEMS, TVW_DISCARD_ITEMS)
-
+ 
 const COINCIDENCE_POOL = COINCIDENCE_STANDARD_POOL_QUEST_ITEMS.concat(COINCIDENCE_ALTERNATIVE_POOL_QUEST_ITEMS)
-
+ 
 const DEPOSIT_ACTION = "deposit"
 const DISCARD_ACTION = "discard"
 const STOCK_ACTION = "stock"
-
+ 
 // Colors
 const COINCIDENCE_BLUE = '#a7fdff'
 const CODESTONE_RED = '#d50000'
@@ -615,38 +618,38 @@ const GSF_PINK = '#b06165'
 const UNDERWATER_FISHING = '#9d6dae'
 const TVW_PURPLE = '#ff46ff'
 const RARE_ITEM = '#fdc92d' // morphing potion, transmog potion, paint brush
-
+ 
 const STOCK_ITEM_LIST = TAN_CODESTONES.concat(GIANT_SPACE_FUNGUS_SELL_ITEMS, UNDERWATER_FISHING_SELL_ITEMS, TVW_SELL_ITEMS)
-
+ 
 const DEPOSIT_ITEM_LIST = COINCIDENCE_STANDARD_POOL_QUEST_ITEMS.concat(COINCIDENCE_ALTERNATIVE_POOL_QUEST_ITEMS,
                                                                            UNDERWATER_FISHING_DEPOSIT_ITEMS,
                                                                            RED_CODESTONES,
                                                                            RARE_OMELETTES,
                                                                            GIANT_SPACE_FUNGUS_DEPOSIT_ITEMS,
                                                                            TVW_DEPOSIT_ITEMS)
-
+ 
 const DISCARD_ITEM_LIST = GIANT_SPACE_FUNGUS_DISCARD_ITEMS.concat(UNDERWATER_FISHING_DISCARD_ITEMS, TVW_DISCARD_ITEMS)
-
+ 
 const d = document;
-
-
+ 
+ 
 function shouldDepositItem(itemName) {
     return DEPOSIT_ITEM_LIST.find((element) => element == itemName) ||
         itemName.endsWith("Morphing Potion") || itemName.endsWith("Paint Brush") || itemName.endsWith("Transmogrification Potion")
 }
-
+ 
 function shouldStockItem(itemName) {
     return STOCK_ITEM_LIST.find((element) => element == itemName)
 }
-
+ 
 function shouldDiscardItem(itemName) {
     return DISCARD_ITEM_LIST.find((element) => element == itemName)
 }
-
+ 
 function selectAction(tableRow, action) {
      $(tableRow).find("input[value=" + action + "]").attr('checked', 'checked')
 }
-
+ 
 function highlightItem(tableRow, itemName) {
      if (COINCIDENCE_POOL.find((element) => element == itemName)) {
           $(tableRow).css('background-color', COINCIDENCE_BLUE)
@@ -664,30 +667,26 @@ function highlightItem(tableRow, itemName) {
          $(tableRow).css('background-color', RARE_ITEM)
      }
 }
-
+ 
 $(document).ready(function(){
         $('form[name="quickstock"] tr:not(:has(th))').not(':last').filter(function() {
             var itemName = $(this).find("td:eq(0)").text()
-
+ 
             highlightItem(this, itemName)
-
+ 
             // Items could be on multiple lists. Priority is to always preserve the item,
             // so an item is ONLY discarded if it is not in the stock or deposit list.
             // Basically...deposit > stock > discard
             if (shouldDiscardItem(itemName)) {
                 selectAction(this, DISCARD_ACTION)
             }
-
+ 
             if (shouldStockItem(itemName)) {
                 selectAction(this, STOCK_ACTION)
             }
-
+ 
             if (shouldDepositItem(itemName)) {
                 selectAction(this, DEPOSIT_ACTION);
             }
         });
 });
-
-
-
-
