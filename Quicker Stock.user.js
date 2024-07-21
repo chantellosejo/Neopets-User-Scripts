@@ -6,7 +6,7 @@
 //               Currently covers red codestones, tan codestones, Giant Space Fungus drops, rare omelettes The Coincidence quest items, 
 //               The Void Within Battledome & Neohospital Pools, rare valuable items (paint brushes, morphing potions, transmog potions),
 //               and Underwater Fishing.
-// @author       chanakin
+// @author       darknstormy
 // @match        https://www.neopets.com/quickstock.phtml
 // @grant        none
 // @license MIT
