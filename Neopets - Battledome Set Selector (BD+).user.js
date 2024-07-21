@@ -1,8 +1,8 @@
 // ==UserScript==
-// @name         FIXED: Neopets - Battledome Set Selector (BD+) <MettyNeo>
+// @name         Neopets - Battledome Set Selector (BD+) <MettyNeo>
 // @description  Adds a toolbar to define and select up to 5 different loadouts. can default 1 loadout to start as selected. Also adds other QoL battledome features, such as disabling battle animations and auto-selecting 1P opponent.
-// @author       Metamagic - fixes by chanakin
-// @version      2.7
+// @author       Metamagic
+// @version      2.8.4
 // @icon         https://i.imgur.com/RnuqLRm.png
 // @match        https://www.neopets.com/dome/*
 // @grant GM_setValue
@@ -16,6 +16,7 @@
 // Trans rights are human rights ^^
 // metty says hi
 
+// Changelog: Fixed a bug with the datetime where you can't use PST/PDT in the wrong daylight savings time period; used America/Los_Angeles instead
 // You are free to modify this script for personal use but modified scripts must not be shared publicly without permission.
 // Modify aspects of this script at your own risk as modifications that give an advantage are against the Neopets rules.
 // Feel free to contact me at @mettymagic on discord for any questions or inquiries. ^^
@@ -26,10 +27,15 @@ const HIDE_USELESS_BUTTONS = true //hides the useless chat/animation buttons
 const IMPROVE_CHALLENGER_LIST = true //enables the 1P challenger list improvements, such as the favorites list and auto-selection.
 const LOOT_DISPLAY = true //displays earned loot in the form of pretty progress bars
 const INDEX_REDIRECT = true //redirects off the main index page to the fight page
-const LOOSE_OBELISK_RESTRICTIONS = true //allows the script to be used in obelisk battles if you haven't done your 10 battles or if you haven't earned your 30 items. honor means nothing compared to convenience.
+const LOOSE_OBELISK_RESTRICTIONS = true //allows the script to be used in obelisk battles if you haven't done your 10 battles or if you haven't earned your 15 items. honor means nothing compared to convenience.
+
+const MAX_NP = 50000
+const MAX_ITEMS = 15
+const MAX_PP = 200
 
 //TO-DO:
 // - give obelisk opponents own section in BD list
+
 
 //==========
 // constants
@@ -71,6 +77,7 @@ if(window.location.href.includes("/dome/index.phtml") || window.location.href ==
 
 let difficulty = null //tracked for obelisk point calculation
 let obeliskContribution = 0
+let isTVW = false
 //runs on page load
 window.addEventListener("DOMContentLoaded", function() {
     //arena page (battle)
@@ -83,6 +90,7 @@ window.addEventListener("DOMContentLoaded", function() {
             for(const mutation of mutations) {
                 for(const removed of mutation.removedNodes) {
                     if(removed.id === "introdiv") {
+                        isTVW = isVoidOpponent() //plot stuff
                         difficulty = $("#p2hp")[0].innerHTML
                         addBar() //adds set bar
                         handleRewards() //deals with winning rewards
@@ -115,6 +123,14 @@ window.addEventListener("DOMContentLoaded", function() {
         }
     }
 })
+
+//TVW stuff
+const tvw_tag = "_tvw"
+function isVoidOpponent() {
+    let url = $("#p2image")[0].style.backgroundImage.slice(4, -1).replace(/"/g, "")
+    let regex = new RegExp(`.*?dome\/npcs.*?_tvw\/.*`)
+    return regex.test(url)
+}
 
 //================
 // create elements
@@ -162,7 +178,11 @@ function addBar() {
             if(hud.children[5].innerHTML <= 0 || hud.children[6].innerHTML <= 0) {
                 let obelisktrack = GM_getValue("obelisktrack", {count:0, points:0, date:-1})
                 //resets tracked loot on new day
-                if(getDate() != GM_getValue("bdloottrack", {items:0, np:0, date:null}).date) GM_deleteValue("bdloottrack")
+                if(getDate() != GM_getValue("bdloottrack", {items:0, np:0, date:null}).date)
+                {
+                    GM_deleteValue("bdloottrack")
+                    GM_deleteValue("bdtvwtrack")
+                }
                 //resets obelisk data after 4 days (aka the duration of the war)
                 if(new Date().valueOf() - obelisktrack.date > 1000*60*60*24*4) GM_deleteValue("obelisktrack")
                 //skips final animation
@@ -323,7 +343,7 @@ function makeSaveButton(i) {
     let button = document.createElement("div")
     button.classList.add("bdsetoption", "bdbarclickable", "bdbartext", "activeoption")
     button.index = i
-    button.innerHTML = "Save Set"
+    button.innerHTML = "Save"
     button.addEventListener("click", function(){saveNewSet(i)})
     return button
 }
@@ -331,7 +351,7 @@ function makeSaveButton(i) {
 //button to set autofill options
 function makeSettingsButton(i) {
     let button = document.createElement("div")
-    button.classList.add("bdsetoption", "bdbarclickable", "bdbartext")
+    button.classList.add("bdsetoption", "bdbarclickable", "bdbartext", "options_btn")
     if(getData("bdsets", i).name != null) {
         button.classList.add("activeoption")
         button.addEventListener("click", function(){makeSettingsMenu(i)})
@@ -1257,7 +1277,7 @@ const SAD_BGS = [
 
 ]
 function addEmptyDisplay() {
-    if(GM_getValue("bdloottrack", {items:0, lootlist: {}, np:0, date:null}).items >= 30) var msg = "You can't get any more items. :("
+    if(GM_getValue("bdloottrack", {items:0, lootlist: {}, np:0, date:null}).items >= 15) var msg = "You can't get any more items. :("
     else msg = "You didn't win anything. :("
     let td = document.createElement("td")
     td.style = "width:90px; position:relative;"
@@ -1274,29 +1294,43 @@ function addLootBars() {
     let barCont = document.createElement("div")
     barCont.classList.add("lootprogress")
     //framework
-    let itemProgressBar = document.createElement("div")
-    itemProgressBar.classList.add("lootprogress-cont")
+    let bar1 = document.createElement("div")
+    bar1.classList.add("lootprogress-cont")
     let pbar = document.createElement("div")
     pbar.classList.add("lootprogress-bar")
     let tbar = document.createElement("div")
     tbar.classList.add("lootprogress-text")
-    itemProgressBar.appendChild(pbar)
-    itemProgressBar.appendChild(tbar)
-    let npProgressBar = itemProgressBar.cloneNode(true)
+    bar1.appendChild(pbar)
+    bar1.appendChild(tbar)
+    let bar2 = bar1.cloneNode(true)
+    if(isTVW) {
+        var bar3 = bar1.cloneNode(true)
+    }
     //item bar
-    let wonItems = GM_getValue("bdloottrack", {items:0, np:0}).items
-    itemProgressBar.querySelector(".lootprogress-bar").style.backgroundColor = "#1E90FF"
-    itemProgressBar.querySelector(".lootprogress-bar").style.width = `${wonItems/30.0*100.0}%`
-    itemProgressBar.querySelector(".lootprogress-text").innerHTML = `${wonItems} / 30 Items`
+    let w1 = GM_getValue("bdloottrack", {items:0, np:0}).items
+    bar1.querySelector(".lootprogress-bar").style.backgroundColor = "#1E90FF"
+    bar1.querySelector(".lootprogress-bar").style.width = `${Math.min(w1/MAX_ITEMS*100.0, 100)}%`
+    bar1.querySelector(".lootprogress-text").innerHTML = `${w1} / ${MAX_ITEMS} Items`
     //np bar
-    let wonNp = GM_getValue("bdloottrack", {items:0, np:0}).np
-    npProgressBar.querySelector(".lootprogress-bar").style.backgroundColor = "#DAA520"
-    npProgressBar.querySelector(".lootprogress-bar").style.width = `${wonNp/50000.0*100.0}%`
-    npProgressBar.querySelector(".lootprogress-text").innerHTML = `${wonNp} / 50000 NP`
+    let w2 = GM_getValue("bdloottrack", {items:0, np:0}).np
+    bar2.querySelector(".lootprogress-bar").style.backgroundColor = "#DAA520"
+    bar2.querySelector(".lootprogress-bar").style.width = `${Math.min(w2/MAX_NP*100.0, 100)}%`
+    bar2.querySelector(".lootprogress-text").innerHTML = `${w2} / ${MAX_NP} NP`
+
+    if(isTVW) {
+        let w3 = GM_getValue("bdtvwtrack", 0)
+        bar3.querySelector(".lootprogress-bar").style.backgroundColor = "#A171BF"
+        bar3.querySelector(".lootprogress-bar").style.width = `${Math.min(w3/MAX_PP*100.0, 100)}%`
+        bar3.querySelector(".lootprogress-text").innerHTML = `${w3} / ${MAX_PP} Plot Points`
+    }
 
     //adds loot bars to page
-    barCont.appendChild(itemProgressBar)
-    barCont.appendChild(npProgressBar)
+    barCont.appendChild(bar1)
+    barCont.appendChild(bar2)
+    if(isTVW) {
+        barCont.appendChild(bar3)
+        barCont.style.height = "60px"
+    }
     $("#bd_rewards")[0].appendChild(barCont)
 
     //hides some messages that flood up the reward box with the bars
@@ -1331,21 +1365,32 @@ function countRewards() {
         GM_setValue("bdloottrack", loot)
         console.log(`[BD+] ${items} item(s) and ${np} NP earned, loot recorded.`)
     }
-    return items.length + (np > 0 ? 1 : 0) //returns true if there were any rewards and false (aka 0) if there weren't
+
+    if(isTVW) {
+        let pp = $("#bd_rewards > p:nth-child(4) > span")
+        if(pp.length > 0) {
+            var earned = Number(pp[0].innerHTML.split(" ")[0])
+            let prev = GM_getValue("bdtvwtrack", 0)
+            GM_setValue("bdtvwtrack", prev + earned)
+        }
+    }
+
+    return items.length + (np > 0 ? 1 : 0) + (isTVW ? earned : 0) //returns true if there were any rewards and false (aka 0) if there weren't
 }
 function hitItemLimit() {
-    return GM_getValue("bdloottrack", {items:0, np:0}).items >= 30
+    return GM_getValue("bdloottrack", {items:0, np:0}).items >= 15
 }
 function highlightItemLimit() {
     //doesnt highlight in obelisk fights
     if(HIGHLIGHT_MAX_REWARDS && hitItemLimit() && !isObelisk()) {
         $("#arenacontainer #bdPopupGeneric-winnar")[0].getElementsByClassName("middle")[0].style.backgroundColor = "#D0EDCA"
+        $("#arenacontainer #bdPopupGeneric-winnar")[0].getElementsByClassName("bg")[0].style.backgroundColor = "#D0EDCA"
     }
 }
 
 //obelisk limits apply if you've done less than 10 obelisk fights and you've collected your daily prizes
 function limitObelisk() {
-    return isObelisk() && ((GM_getValue("obelisktrack", {count:0, points:0}).count >= 10 && GM_getValue("bdloottrack", {items:0, np:0, date:null}).items == 30) || !LOOSE_OBELISK_RESTRICTIONS)
+    return isObelisk() && ((GM_getValue("obelisktrack", {count:0, points:0}).count >= 10 && GM_getValue("bdloottrack", {items:0, np:0, date:null}).items == 15) || !LOOSE_OBELISK_RESTRICTIONS)
 }
 function addObeliskContribution() {
     let guild = isObelisk()
@@ -1374,11 +1419,7 @@ function clone(data) {
 }
 
 function getDate() {
-    try {
-         return new Date().toLocaleString("en-US", {timeZone: "America/Los_Angeles"}).slice(0, 10).replace(",","")
-    } catch {
-        return new Date().toLocaleString("en-US", {timeZone: "PST"}).slice(0, 10).replace(",","")
-    }
+    return new Date().toLocaleString("en-US", {timeZone: "America/Los_Angeles"}).slice(0, 10).replace(",","")
 }
 
 function getItemURL(node, ability=false) {
@@ -1411,12 +1452,11 @@ function addArenaCSS() {
     //bar
     document.head.appendChild(document.createElement("style")).innerHTML = `
         .bdbartext {
-            font-family: "Comic Sans MS", "Comic Sans", serif;
+            font-family: "MuseoSansRounded500", "Arial", sans-serif;
             text-align: center;
             text-overflow: hidden;
             overflow: hidden;
             padding: 2px;
-            margin: auto;
             max-width: 100%;
             max-height: 100%;
             font-size: 14px;
@@ -1448,7 +1488,6 @@ function addArenaCSS() {
             padding: 5px;
             width: 18%;
             display: flex;
-            justify-content: center;
             align-items: center;
         }
 
@@ -1498,19 +1537,26 @@ function addArenaCSS() {
             display: flex;
             flex-direction: column;
             height: 100%;
+            flex: 1;
+            margin: 0 0 0 2px;
         }
 
         .bdsetoption {
-            background-color: #C2D1D1;
-            padding: 2px;
-            margin: 1px 0px;
+            background-color: #ffde00;
+            padding: 2px 4px;
         }
+
+        .options_btn {
+            margin: 2px 0;
+        }
+
         .activeoption {
             cursor: pointer !important;
         }
         .activeoption:active {
             background-color: #A5B5B5;
         }
+
         .lootprogress {
             display: flex;
             flex-direction: column;
@@ -1545,11 +1591,8 @@ function addArenaCSS() {
         #bdrewards p {
             margin-top: 0px;
         }
-        #bd_rewardsloot tr {
-            height: auto !important;
-            grid-template-columns: none !important;
-            grid-auto-columns: minmax(100px, 1fr);
-            grid-auto-rows: auto;
+        .bdPopupGeneric.contents {
+            padding-bottom: 50px !important;
         }
         #bdlootdisplay {
             display: table;
@@ -1561,6 +1604,12 @@ function addArenaCSS() {
             background-color: white;
             border: 2px solid;
             border-collapse: collapse;
+        }
+        #bd_rewardsloot {
+            height: auto !important;
+        }
+        #bd_rewardsnav {
+            top: 286px !important;
         }
         #bdlootdisplay th, #bdlootdisplay tr {
             border: 1px solid black;
@@ -1576,6 +1625,15 @@ function addArenaCSS() {
             background-color: #ffffb3;
         }
     `
+    /*
+        #bd_rewardsloot tr {
+            display: flex !important;
+            justify-content: center;
+        }
+        #bd_rewardsloot tr td {
+            display: block !important;
+        }
+    */
 
     //settings window
     document.head.appendChild(document.createElement("style")).innerHTML = `
