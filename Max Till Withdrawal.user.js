@@ -1,5 +1,5 @@
 // ==UserScript==
-// @author         chanakin
+// @author         darknstormy
 // @name           Neopets - Max Till Withdrawal
 // @description    Sets withdraw value to amount in till and autofills PIN, so all you have to do is hit enter!
 //                 Note: this does expose your PIN to anyone using your computer, so please use this judiciously and not on a shared browser/account/device.
