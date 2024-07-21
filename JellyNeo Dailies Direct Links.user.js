@@ -18,6 +18,7 @@ const DAILY_PUZZLE_SOLUTION = "https://www.jellyneo.net/?go=dailypuzzle"
 const TEST_YOUR_STRENGTH_NO_FLASH = "http://www.neopets.com/halloween/strtest/process_strtest.phtml"
 const BAGATELLE_NO_FLASH = "http://www.neopets.com/halloween/process_bagatelle.phtml"
 const CORKGUN_NO_FLASH = "http://www.neopets.com/halloween/process_corkgun.phtml"
+const SECRET_LAB = "https://www.neopets.com/lab2.phtml"
 
 replaceLinks();
 
@@ -30,4 +31,5 @@ function replaceLinks() {
     $("a[href='https://www.neopets.com/halloween/strtest/index.phtml']").attr("href", TEST_YOUR_STRENGTH_NO_FLASH);
     $("a[href='https://www.neopets.com/halloween/bagatelle.phtml']").attr("href", BAGATELLE_NO_FLASH);
     $("a[href='https://www.neopets.com/halloween/corkgun.phtml']").attr("href", CORKGUN_NO_FLASH)
+    $("a[href='https://www.neopets.com/lab.phtml']").attr("href", SECRET_LAB)
 }
