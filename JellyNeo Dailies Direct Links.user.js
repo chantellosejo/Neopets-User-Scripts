@@ -1,9 +1,9 @@
 // ==UserScript==
 // @name         JellyNeo Direct Dailies Links
 // @namespace    http://tampermonkey.net/
-// @version      2024-07-21
+// @version      2024-07-2101
 // @description  Love JellyNeo's Dailies list, but hate that some of the links take extra work (like unnecessary clicks)? Skip the trouble and go straight to the end!
-// @author       chanakin
+// @author       darknstormy
 // @match        https://www.jellyneo.net/index.php?go=dailies
 // @icon         https://www.google.com/s2/favicons?sz=64&domain=jellyneo.net
 // @grant        none
