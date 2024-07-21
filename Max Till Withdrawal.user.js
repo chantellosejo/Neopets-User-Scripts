@@ -1,6 +1,7 @@
 // ==UserScript==
 // @author         darknstormy
 // @name           Neopets - Max Till Withdrawal
+// @version        1.0
 // @description    Sets withdraw value to amount in till and autofills PIN, so all you have to do is hit enter!
 //                 Note: this does expose your PIN to anyone using your computer, so please use this judiciously and not on a shared browser/account/device.
 //                 The author is not responsible for any security breaches as a result of you typing your PIN in plaintext into a user script that runs in your browser.
