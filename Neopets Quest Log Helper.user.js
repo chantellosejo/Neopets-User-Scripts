@@ -71,7 +71,7 @@ GM_addStyle(`
      max-width: 4000px !important;
     }`);
 
-function adjustDailyChunks() {
+function addButtonsForQuests() {
     var results = document.getElementsByClassName("questlog-quest");
     for (var i = 0; i < results.length; i++) {
         var questText = results[i].getElementsByClassName("ql-task-description")[0].innerHTML;
@@ -154,9 +154,6 @@ function turnQuestTypeToActions(questText, questTaskCount) {
     return [GO_TO_INVENTORY, GO_TO_PETS];
 }
 
-adjustDailyChunks();
-
-
 function GM_addStyle(css) {
   const style = document.getElementById("GM_addStyleBy8626") || (function() {
     const style = document.createElement('style');
@@ -168,3 +165,5 @@ function GM_addStyle(css) {
   const sheet = style.sheet;
   sheet.insertRule(css, (sheet.rules || sheet.cssRules || []).length);
 }
+
+addButtonsForQuests();
