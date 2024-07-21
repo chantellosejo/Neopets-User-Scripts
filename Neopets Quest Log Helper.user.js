@@ -1,12 +1,13 @@
 // ==UserScript==
-// @name         Neopets Daily Quest Helper
+// @name         Neopets Quest Log Helper
 // @namespace    http://tampermonkey.net/
-// @version      1.2
-// @description  Add a "Go!" button to aid your daily questing
-// @author       Harvey, with modifications by chanakin
+// @version      1.0
+// @description  Add buttons to speed along your daily questing
+// @author       chanakin (hat-tip to harvey, whose code this was originally based upon)
 // @match        https://www.neopets.com/questlog/
 // @icon         https://www.google.com/s2/favicons?sz=64&domain=neopets.com
 // @grant        none
+// @license      MIT
 // ==/UserScript==
 
 const SPIN_WHEEL_OF_MEDIOCRITY = {
@@ -64,17 +65,15 @@ const GO_TO_PETS = {
     link: "/home/index.phtml"
 }
 
-GM_addStyle (`
+GM_addStyle(`
     .button-grid2__2020{
      grid-template:auto / repeat(5, 1fr)!important;
      max-width: 4000px !important;
     }`);
 
-function adjustDailyChunks()
-{
+function adjustDailyChunks() {
     var results = document.getElementsByClassName("questlog-quest");
-    for (var i = 0; i < results.length; i++)
-    {
+    for (var i = 0; i < results.length; i++) {
         var questText = results[i].getElementsByClassName("ql-task-description")[0].innerHTML;
         var questTaskNum = results[i].getElementsByClassName("ql-task-num")
         var questTaskCount = 1;
@@ -84,7 +83,6 @@ function adjustDailyChunks()
         }
 
         var actions = turnQuestTypeToActions(questText, questTaskCount);
-        console.log("Actions: " + actions);
         let buttons = results[i].getElementsByClassName("ql-quest-buttons")[0];
 
         if (actions) {
@@ -106,45 +104,36 @@ function adjustDailyChunks()
     }
 }
 
-function turnQuestTypeToActions(questText, questTaskCount)
-{
+function turnQuestTypeToActions(questText, questTaskCount) {
     var quest = questText.toLowerCase();
 
-    if (quest.includes("wheel"))
-    {
-        if(quest.includes("mediocrity"))
-        {
+    if (quest.includes("wheel")) {
+        if(quest.includes("mediocrity")) {
             return [SPIN_WHEEL_OF_MEDIOCRITY];
         }
 
-        if (quest.includes("excitement"))
-        {
+        if (quest.includes("excitement")) {
             return [SPIN_WHEEL_OF_EXCITEMENT];
         }
 
-        if (quest.includes("misfortune"))
-        {
+        if (quest.includes("misfortune")) {
             return [SPIN_WHEEL_OF_MISFORTUNE];
         }
 
-        if (quest.includes("knowledge"))
-        {
+        if (quest.includes("knowledge"))  {
             return [SPIN_WHEEL_OF_KNOWLEDGE];
         }
 
         return null
     }
 
-    if (quest.includes("purchase"))
-    {
+    if (quest.includes("purchase")) {
         switch (questTaskCount) {
             case 2: {
-                console.log("2 tasks");
                 return [MAKE_PURCHASE_HEALING_SPRINGS, MAKE_PURCHASE_GEN_STORE];
             }
 
             case 3: {
-
                 return [MAKE_PURCHASE_HEALING_SPRINGS, MAKE_PURCHASE_GEN_STORE, MAKE_PURCHASE_BOOK_STORE];
             }
 
@@ -154,13 +143,11 @@ function turnQuestTypeToActions(questText, questTaskCount)
         }
     }
 
-    if (quest.includes("game"))
-    {
+    if (quest.includes("game")) {
         return [PLAY_FASHION_FEVER];
     }
 
-    if (quest.includes("customise"))
-    {
+    if (quest.includes("customise")) {
         return [CUSTOMIZE];
     }
 
