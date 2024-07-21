@@ -4,7 +4,7 @@
 // @version      1.4
 // @description  Highlights and selects pre-determined option for items on the Quick Stock Page based on their categorization.
 //               Currently covers red codestones, tan codestones, Giant Space Fungus drops, rare omelettes The Coincidence quest items, 
-//               The Void Within Battledome & Neohospital Pools, and rare valuable items (paint brushes, morphing potions, transmog potions),
+//               The Void Within Battledome & Neohospital Pools, rare valuable items (paint brushes, morphing potions, transmog potions),
 //               and Underwater Fishing.
 // @author       chanakin
 // @match        https://www.neopets.com/quickstock.phtml
