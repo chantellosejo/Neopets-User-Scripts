@@ -1,6 +1,6 @@
 // ==UserScript==
 // @name         Neopets Shortcuts on Steroids
-// @version      1.0
+// @version      1.1
 // @description  The Neopets' site navigation is pretty unintuitive. This streamlines and gives you quick access to the most important things in all the new pages.
 // @author       darknstormy
 // @match        *://*.neopets.com/*
@@ -67,14 +67,16 @@ function addLinks() {
 
     var shortcutToolbar = document.getElementsByClassName("navsub-left__2020")[0]
 
-    // Create an icon for inventory for the quick links in the top bar
-    shortcutToolbar.appendChild(createShortcutIcon("https://www.neopets.com/inventory.phtml", "https://images.neopets.com/themes/h5/hauntedwoods/images/inventory-icon.svg", "shortcut"))
+    if (shortcutToolbar) {
+        // Create an icon for inventory for the quick links in the top bar
+        shortcutToolbar.appendChild(createShortcutIcon("https://www.neopets.com/inventory.phtml", "https://images.neopets.com/themes/h5/hauntedwoods/images/inventory-icon.svg", "shortcut"))
 
-    // Do the same for SDB
-    shortcutToolbar.appendChild(createShortcutIcon("https://www.neopets.com/safetydeposit.phtml", "https://images.neopets.com/themes/h5/constellations/images/safetydeposit-icon.svg", "shortcut"))
+        // Do the same for SDB
+        shortcutToolbar.appendChild(createShortcutIcon("https://www.neopets.com/safetydeposit.phtml", "https://images.neopets.com/themes/h5/constellations/images/safetydeposit-icon.svg", "shortcut"))
 
-    // Last is Quick Stock
-    shortcutToolbar.appendChild(createShortcutIcon("https://www.neopets.com/quickstock.phtml", "https://images.neopets.com/themes/h5/constellations/images/quickstock-icon.svg", "shortcut"))
+        // Last is Quick Stock
+        shortcutToolbar.appendChild(createShortcutIcon("https://www.neopets.com/quickstock.phtml", "https://images.neopets.com/themes/h5/constellations/images/quickstock-icon.svg", "shortcut"))
+    }
 }
 
 addLinks()
