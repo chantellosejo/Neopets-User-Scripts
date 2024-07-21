@@ -1,9 +1,10 @@
 // ==UserScript==
-// @name         Neopets Navigation Overhaul
-// @version      1.4
+// @name         Neopets Shortcuts on Steroids
+// @version      1.0
 // @description  The Neopets' site navigation is pretty unintuitive. This streamlines and gives you quick access to the most important things in all the new pages.
-// @author       Chanakin
+// @author       darknstormy
 // @match        *://*.neopets.com/*
+// @license      MIT
 // ==/UserScript==
 
 function createShortcutIcon(link, iconUrl, cssClasses) {
