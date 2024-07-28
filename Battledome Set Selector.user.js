@@ -28,99 +28,20 @@ const IMPROVE_CHALLENGER_LIST = true //enables the 1P challenger list improvemen
 const LOOT_DISPLAY = true //displays earned loot in the form of pretty progress bars
 const LOOSE_OBELISK_RESTRICTIONS = true //allows the script to be used in obelisk battles if you haven't done your 10 battles or if you haven't earned your max items. honor means nothing compared to convenience.
 
-const MAX_NP = 50000
-const MAX_ITEMS = 45
-const MAX_PP = 200
-
 //TO-DO:
 // - give obelisk opponents own section in BD list
 
-
-//==========
-// constants
-//==========
-
 let firstLoad = true
 
-//button colors in rgb
-const red = [180, 75, 75]
-const blue = [107, 168, 237]
-const green = [123, 199, 88]
-const yellow = [249, 204, 14]
-const magenta = [179, 89, 212]
-const gray = [99, 99, 99]
-const colormap = [red, blue, green, magenta, yellow]
-
-const nullset = {set: null, name: null, default: null}
-const nullautofill = {turn1: null, turn2: null, default: null}
-
-const ROW_COLORS = {
-    1: "#a9bad4",
-    2: "#cce9eb",
-    3: "#cae3cf",
-    4: "#e3cbc8",
-    5: "#9fb9cc",
-    6: "#d6cbc1",
-    7: "#e6e4d8",
-    8: "#dcd3e3"
-}
-
-//=====
-// main
-//=====
+//==============
+// INIT
+//==============
 
 //index page - redirects
 if (window.location.href.includes("/dome/index.phtml") || window.location.href === "https://www.neopets.com/dome/" || window.location.href.includes("/dome/?")) {
     window.location.replace("https://www.neopets.com/dome/fight.phtml")
 }
 
-let difficulty = null //tracked for obelisk point calculation
-let obeliskContribution = 0
-let isTVW = false
-
-function isBeginningOfTVWBattle() {
-    let waveNumber = $("#introdiv .tvw-fight_waveNumber")
-
-    if (waveNumber && waveNumber.text()) {
-        // Wave number text looks like "Wave : #", so if we split on :, then we will end up with an array like
-        // ["Wave ", " #"]
-        // grab the second element in the array and trim the whitespace from the start,
-        // then convert to a number. If it's wave 1, then we've begun a new TVW Battle.
-        return Number(waveNumber.text().split(":")[1].trimStart()) === 1
-    }
-
-    return false
-}
-
-function getObeliskTrack() {
-    return GM_getValue(OBELISK_TRACK_KEY, {count: 0, points: 0, date: -1});
-}
-
-function checkAndResetTrackers() {
-    if (shouldResetDailyLoot()) {
-        GM_deleteValue(BD_LOOT_TRACK_KEY)
-        GM_deleteValue(BD_TVW_TRACK_KEY)
-    }
-
-    if (obeliskWarIsOver(getObeliskTrack().date)) {
-        GM_deleteValue(OBELISK_TRACK_KEY)
-    }
-
-    if (isBeginningOfTVWBattle()) {
-        let tvwTracker = getTvwTrack()
-        // Go ahead and credit anything in progress as completed
-        // This will catch any edge cases where for some reason the previous battle was disrupted
-        tvwTracker.completedBattlePoints += tvwTracker.inProgressBattlePoints
-        console.log(`[BD+] TVW Battle has begun! Adding points that were in progress from a previous plot battle: ${tvwTracker.inProgressBattlePoints} to make new total: ${tvwTracker.completedBattlePoints}. Then resetting in progress fields...`)
-        tvwTracker.inProgressBattlePoints = 0
-        tvwTracker.inProgressNp = 0
-        tvwTracker.inProgressItems = []
-        GM_setValue(BD_TVW_TRACK_KEY, tvwTracker)
-        console.log(`[BD+] TVW Battle Stats: Points: ${tvwTracker.completedBattlePoints}, in progress points, np, items: ${tvwTracker.inProgressBattlePoints}, ${tvwTracker.inProgressNp}, ${tvwTracker.inProgressItems}`)
-    }
-}
-
-//runs on page load
 window.addEventListener("DOMContentLoaded", function () {
     //arena page (battle)
     if (window.location.href.includes("/dome/arena.phtml")) {
@@ -134,10 +55,10 @@ window.addEventListener("DOMContentLoaded", function () {
                 for (const mutation of mutations) {
                     for (const removed of mutation.removedNodes) {
                         if (removed.id === "introdiv") {
-                            isTVW = isVoidOpponent() //plot stuff
+                            isTVW = isVoidOpponent()
                             difficulty = $("#p2hp")[0].innerHTML
-                            addBar() //adds set bar
-                            handleRewards() //deals with winning rewards
+                            addBar()
+                            handleRewards()
                             //removes buttons if bar isn't disabled and animations are disabled
                             if (HIDE_USELESS_BUTTONS && (!limitObelisk() && !is2Player()) && ANIMATION_DELAY >= 0) {
                                 $("#skipreplay")[0].style.visibility = "hidden"
@@ -168,41 +89,174 @@ window.addEventListener("DOMContentLoaded", function () {
     }
 })
 
-//TVW stuff
+//=======================================
+// The Void Within Plot Battle Logic
+//=======================================
+let isTVW = false
+const BD_TVW_TRACK_KEY = "bdtvwtrack";
+
+function isBeginningOfTVWBattle() {
+    let waveNumber = $("#introdiv .tvw-fight_waveNumber")
+
+    if (waveNumber && waveNumber.text()) {
+        // Wave number text looks like "Wave : #", so if we split on :, then we will end up with an array like
+        // ["Wave ", " #"]
+        // grab the second element in the array and trim the whitespace from the start,
+        // then convert to a number. If it's wave 1, then we've begun a new TVW Battle.
+        return Number(waveNumber.text().split(":")[1].trimStart()) === 1
+    }
+
+    return false
+}
+
 function isVoidOpponent() {
     let url = $("#p2image")[0].style.backgroundImage.slice(4, -1).replace(/"/g, "")
     let regex = new RegExp(`.*?dome\/npcs.*?_tvw\/.*`)
     return regex.test(url)
 }
 
-//================
-// create elements
-//================
+function isEndOfPlotBattleWaves() {
+    return $(".end_ack.collect").is(":visible");
+}
 
-const OBELISK_TRACK_KEY = "obelisktrack";
+function getTvwTrack() {
+    return GM_getValue(BD_TVW_TRACK_KEY, {
+        completedBattlePoints: 0,
+        inProgressBattlePoints: 0,
+        inProgressItems: [],
+        inProgressNp: 0
+    });
+}
+
+function getPlotPointsAwarded() {
+    let pp = $("#bd_rewards > p:nth-child(4) > span")
+
+    if (pp.length > 0) {
+        return Number(pp[0].innerHTML.split(" ")[0])
+    }
+
+    return 0
+}
+
+function countTVWBattleRewards() {
+    // The plot behaves weirdly, because it works with "waves" of enemies that you fight back to back, with rewards "granted"
+    // at the end of the final wave. It seems TNT enabled this "wave" mechanism simply by not showing the popup dialog or "Collect Winnings"
+    // button that normally appears at the end of a battle until the final enemy is defeated.
+    // However, the HTML for this dialog as well as the button still exists in the DOM,
+    // so if we only look for them to be present, then we end up double-counting
+    // plot points when they share the "total" at the end of all 4 or 5 battles. To solve this,
+    // we'll only add plot points based on what is shown when the Collect button is NOT visible.
+    // It is better to add them up after each battle, since a full wave of enemies could be disrupted by various means,
+    // meaning you could have a scenario when the final dialog isn't shown to the user. In this scenario, waiting until
+    // the end to calculate the points earned could result in not correctly adding points that have been granted.
+    let tvwTrack = getTvwTrack()
+    let ppEarned = getPlotPointsAwarded()
+    let itemsWon = getItemRewards()
+    let npWon = getNpRewards()
+
+    if (!isEndOfPlotBattleWaves()) {
+        tvwTrack.inProgressBattlePoints += ppEarned
+        if (itemsWon && itemsWon.length > 0) {
+            tvwTrack.inProgressItems = Array.concat(itemsWon, tvwTrack.inProgressItems)
+        }
+        tvwTrack.inProgressNp = npWon
+        GM_setValue(BD_TVW_TRACK_KEY, tvwTrack)
+        // Always record the items and np won as we go in our main loot track
+        console.log(`[BD+] Recording in progress values in TVW Track: Points = ${tvwTrack.inProgressBattlePoints}, Items = ${tvwTrack.inProgressItems}, NP = ${tvwTrack.inProgressNp}`)
+        return ppEarned > 0 || recordLoot(itemsWon, npWon)
+    }
+
+    // We have to get the diff now, between what we've already recorded and what was earned by defeating the last enemy
+    let itemsWonInLastWave = itemsWon.filter(function (v) {
+        return !this.get(v) || !this.set(v, this.get(v) - 1);
+    }, tvwTrack.inProgressItems.reduce((acc, v) => acc.set(v, (acc.get(v) || 0) + 1), new Map()));
+    console.log(`[BD+] Items won in last wave: ${itemsWonInLastWave}`)
+    let npWonInLastWave = npWon - tvwTrack.inProgressNp
+    console.log(`[BD+] Np won in last wave: ${npWonInLastWave}`)
+
+    tvwTrack.completedBattlePoints += ppEarned
+    // Reset our in-progress; we no longer need to keep track of these
+    tvwTrack.inProgressItems = []
+    tvwTrack.inProgressNp = 0
+    tvwTrack.inProgressBattlePoints = 0
+    GM_setValue(BD_TVW_TRACK_KEY, tvwTrack)
+    console.log(`[BD+] Points won in completed plot battle: ${ppEarned} were added to total: ${tvwTrack.completedBattlePoints}`)
+
+    return ppEarned > 0 || recordLoot(itemsWonInLastWave, npWonInLastWave)
+}
 
 const BD_LOOT_TRACK_KEY = "bdloottrack";
 
-const BD_TVW_TRACK_KEY = "bdtvwtrack";
-
-function getPetHp(hud) {
-    return Number(hud.children[5].innerHTML)
+//==============================
+// Tracker State Management
+//==============================
+function shouldResetDailyLoot() {
+    return getDate() !== getRecordedLoot().date;
 }
 
-function getOpponentHp(hud) {
-    return Number(hud.children[6].innerHTML)
+function checkAndResetTrackers() {
+    if (shouldResetDailyLoot()) {
+        GM_deleteValue(BD_LOOT_TRACK_KEY)
+        GM_deleteValue(BD_TVW_TRACK_KEY)
+    }
+
+    if (obeliskWarIsOver(getObeliskTrack().date)) {
+        GM_deleteValue(OBELISK_TRACK_KEY)
+    }
+
+    if (isBeginningOfTVWBattle()) {
+        let tvwTracker = getTvwTrack()
+        // Go ahead and credit anything in progress as completed
+        // This will catch any edge cases where for some reason the previous battle was disrupted
+        tvwTracker.completedBattlePoints += tvwTracker.inProgressBattlePoints
+        console.log(`[BD+] TVW Battle has begun! Adding points that were in progress from a previous plot battle: ${tvwTracker.inProgressBattlePoints} to make new total: ${tvwTracker.completedBattlePoints}. Then resetting in progress fields...`)
+        tvwTracker.inProgressBattlePoints = 0
+        tvwTracker.inProgressNp = 0
+        tvwTracker.inProgressItems = []
+        GM_setValue(BD_TVW_TRACK_KEY, tvwTracker)
+    }
 }
 
-function isTie(hud) {
-    return getPetHp(hud) === 0 && getOpponentHp(hud) === 0;
+//===================
+// Obelisk Functions
+//===================
+let difficulty = null //tracked for obelisk point calculation
+let obeliskContribution = 0
+const OBELISK_TRACK_KEY = "obelisktrack";
+
+function getObeliskTrack() {
+    return GM_getValue(OBELISK_TRACK_KEY, {count: 0, points: 0, date: -1});
 }
 
-function isWin(hud) {
-    return getPetHp(hud) > 0 && getOpponentHp(hud) === 0;
+//used for legitimacy checks to disable in areas that give advantage
+const OBELISK_TAGS = [
+    "_order",
+    "_thief",
+    "_awakened",
+    "_seekers",
+    "_brute",
+    "_sway"
+]
+const GUILD_MAP = {
+    "_order": "Order",
+    "_thief": "Thieves",
+    "_awakened": "Awakened",
+    "_seekers": "Seekers",
+    "_brute": "Brutes",
+    "_sway": "Sway"
 }
 
-function isLoss(hud) {
-    return getPetHp(hud) === 0 && getOpponentHp(hud) !== 0;
+function isObelisk() {
+    let p2 = $("#arenacontainer #playground #gQ_scenegraph #p2 #p2image")[0]
+    let url = p2.style.backgroundImage
+    let res = null
+    for (const tag of OBELISK_TAGS) {
+        if (url.includes(tag)) {
+            res = GUILD_MAP[tag]
+            break
+        }
+    }
+    return res
 }
 
 const DURATION_FOUR_DAYS = 1000 * 60 * 60 * 24 * 4
@@ -229,14 +283,101 @@ function recordObeliskPointsEarned(hud) {
     GM_setValue(OBELISK_TRACK_KEY, obelisktrack)
 }
 
+function isObeliskNPC(tr) {
+    let style = tr.querySelector("td.image > div").getAttribute("style")
+    for (const tag of OBELISK_TAGS) {
+        if (style.includes(tag)) {
+            let regex = new RegExp(`.*?dome\/npcs.*?${tag}(\\d).*`)
+            return style.match(regex)[1]
+        }
+    }
+    return undefined
+}
+
+function popObeliskFavorite(obeliskId) {
+    //add to favorites list
+    if (GM_getValue("favobnpcs", []).includes(obeliskId)) {
+        let list = Array.from($("#npcTable tr.npcRow:not(.favorite)")).filter((tr) => {
+            let notFavoriteNpcId = isObeliskNPC(tr)
+            return notFavoriteNpcId === obeliskId
+        })
+        for (let tr of list) {
+            tr.classList.add("favorite")
+        }
+    }
+    //remove from favorites list
+    else {
+        let list = Array.from($("#npcTable tr.npcRow.favorite")).filter((tr) => {
+            let favoriteNpcId = isObeliskNPC(tr)
+            return favoriteNpcId === obeliskId
+        })
+        for (let tr of list) {
+            tr.classList.remove("favorite")
+        }
+    }
+}
+
+function limitObelisk() {
+    return isObelisk() && ((getObeliskTrack().count >= 10 && hitItemLimit()) || !LOOSE_OBELISK_RESTRICTIONS)
+}
+
+function addObeliskContribution() {
+    let plural;
+    let guild = isObelisk()
+    if (guild) {
+        let div = document.createElement("div")
+        div.style = "border-radius: 1px; position:absolute; display:block; bottom: -82px; text-align: center; height: 64px; z-index: 1; right: 0px; border: 2px solid black; background-color: lightgrey; background-image: url(https://i.imgur.com/VttRWYx.png); background-size:100%; background-position: bottom;"
+        let msg = div.appendChild(document.createElement("div"))
+        msg.style = "background-color:rgba(255,255,255,0.9); padding: 6px; height: 30px; margin: 13px; border-radius: 1px;"
+        let data = GM_getValue(OBELISK_TRACK_KEY, {count: 0, points: 0, date: -1})
+        if (guild.slice(-1) === 's') {
+            plural = "have";
+        } else plural = "has"
+        msg.innerHTML = `<b>Your contributions against The ${guild} ${plural} been recorded.</b><br>
+        <b>Total Battles: ${data.count} | Total Points: ${data.points} ( +${obeliskContribution} )</b>`
+        $("#bdPopupGeneric-winnar")[0].appendChild(div)
+    }
+}
+
+//===========================
+// Battle State Calculations
+//===========================
+function getRoundCount() {
+    return Number($("#logheader #flround")[0].innerHTML)
+}
+
+function is2Player() {
+    let p2 = $("#arenacontainer #playground #gQ_scenegraph #p2 #p2image")[0]
+    return p2.style.backgroundImage.includes("pets.neopets.com");
+}
+
 function endOfBattle(hud) {
     return hud.children[5].innerHTML <= 0 || hud.children[6].innerHTML <= 0;
 }
 
-function shouldResetDailyLoot() {
-    return getDate() !== getRecordedLoot().date;
+function getPetHp(hud) {
+    return Number(hud.children[5].innerHTML)
 }
 
+function getOpponentHp(hud) {
+    return Number(hud.children[6].innerHTML)
+}
+
+function isTie(hud) {
+    return getPetHp(hud) === 0 && getOpponentHp(hud) === 0;
+}
+
+function isWin(hud) {
+    return getPetHp(hud) > 0 && getOpponentHp(hud) === 0;
+}
+
+function isLoss(hud) {
+    return getPetHp(hud) === 0 && getOpponentHp(hud) !== 0;
+}
+
+//================
+// create elements
+//================
 function addBar() {
     let bar = document.createElement("div")
     bar.id = "bdsetbar"
@@ -1018,40 +1159,6 @@ function modifyTable() {
     }
 }
 
-function isObeliskNPC(tr) {
-    let style = tr.querySelector("td.image > div").getAttribute("style")
-    for (const tag of OBELISK_TAGS) {
-        if (style.includes(tag)) {
-            let regex = new RegExp(`.*?dome\/npcs.*?${tag}(\\d).*`)
-            return style.match(regex)[1]
-        }
-    }
-    return undefined
-}
-
-function popObeliskFavorite(obeliskId) {
-    //add to favorites list
-    if (GM_getValue("favobnpcs", []).includes(obeliskId)) {
-        let list = Array.from($("#npcTable tr.npcRow:not(.favorite)")).filter((tr) => {
-            let notFavoriteNpcId = isObeliskNPC(tr)
-            return notFavoriteNpcId === obeliskId
-        })
-        for (let tr of list) {
-            tr.classList.add("favorite")
-        }
-    }
-    //remove from favorites list
-    else {
-        let list = Array.from($("#npcTable tr.npcRow.favorite")).filter((tr) => {
-            let favoriteNpcId = isObeliskNPC(tr)
-            return favoriteNpcId === obeliskId
-        })
-        for (let tr of list) {
-            tr.classList.remove("favorite")
-        }
-    }
-}
-
 function modifyRow(tr) {
     //adds favorite button
     let fav = document.createElement("div")
@@ -1145,8 +1252,8 @@ function modifyRow(tr) {
     if (GM_getValue("defnpc")?.id?.includes(tr.getAttribute("data-oppid"))) tr.classList.add("default")
 
     //marks obelisk npcs
-    let n = isObeliskNPC(tr)
-    if (n) tr.setAttribute("obelisk-id", n)
+    let isObeliskEnemy = isObeliskNPC(tr)
+    if (isObeliskEnemy) tr.setAttribute("obelisk-id", isObeliskEnemy)
 
     //tints row
     tr.style.backgroundColor = ROW_COLORS[+tr.getAttribute("data-domeid")]
@@ -1238,56 +1345,108 @@ function setData(tag, value) {
     GM_setValue(tag, value)
 }
 
-//================
-// misc. functions
-//================
+//=================
+// Loot Management
+//=================
+const MAX_NP = 50000
+const MAX_ITEMS = 45
+const MAX_PP = 200
 
-function getRoundCount() {
-    return Number($("#logheader #flround")[0].innerHTML)
+const EMPTY_LOOT = {
+    itemCount: 0,
+    items: {},
+    np: 0,
+    date: null
 }
 
-//used for legitimacy checks to disable in areas that give advantage
-const OBELISK_TAGS = [
-    "_order",
-    "_thief",
-    "_awakened",
-    "_seekers",
-    "_brute",
-    "_sway"
+const HIGH_VALUE_LIST = ["armoured negg", "frozen negg", "bubbling fungus", "chocolate ice cream"]
+const RED_LIST = ["cui codestone", "kew codestone", "mag codestone", "sho codestone", "vux codestone", "zed codestone"]
+
+//lets have some fun with the no reward display
+const SAD_ITEMS = [
+    "https://images.neopets.com/items/hfo_depressed_potato.gif",
+    "https://images.neopets.com/items/plu_grey_kacheek.gif",
+    "https://images.neopets.com/items/petpet_frowny.gif",
+    "https://images.neopets.com/items/grey_ghostkerchief.gif",
+    "https://images.neopets.com/items/boo_jubjub_tellmewhy.gif",
+    "https://images.neopets.com/items/cirrus_grey.gif",
+    "https://images.neopets.com/items/plu_grundo_grey.gif",
+    "https://images.neopets.com/items/foo_grey_toast.gif"
 ]
-const GUILD_MAP = {
-    "_order": "Order",
-    "_thief": "Thieves",
-    "_awakened": "Awakened",
-    "_seekers": "Seekers",
-    "_brute": "Brutes",
-    "_sway": "Sway"
+const SAD_BGS = [
+    "https://outfits.openneo-assets.net/outfits/2908566/v/1693339777/150.png",
+    "https://outfits.openneo-assets.net/outfits/2908567/v/1693339872/150.png",
+    "https://outfits.openneo-assets.net/outfits/2908568/v/1693339886/150.png"
+
+]
+
+function countRewards() {
+    if (isTVW) {
+        return countTVWBattleRewards();
+    } else {
+        return recordLoot(getItemRewards(), getNpRewards())
+    }
 }
 
-function isObelisk() {
-    let p2 = $("#arenacontainer #playground #gQ_scenegraph #p2 #p2image")[0]
-    let url = p2.style.backgroundImage
-    let res = null
-    for (const tag of OBELISK_TAGS) {
-        if (url.includes(tag)) {
-            res = GUILD_MAP[tag]
-            break
+function recordLoot(items, np) {
+    let loot = getRecordedLoot()
+
+    if (items.length > 0 || np > 0) {
+        loot.items = updateLootList(loot.items, items)
+        loot.itemCount += items.length
+        loot.np = Number(loot.np) + Number(np) //because js is fucky, np is grabbed as a string so we have to make them numbers first
+    }
+
+    loot.date = getDate() //records current date
+    GM_setValue(BD_LOOT_TRACK_KEY, loot)
+    console.log(`[BD+] ${items.length} item(s) and ${np} NP earned, loot recorded.`)
+
+    return items.length > 0 || np > 0
+}
+
+function getRecordedLoot() {
+    return GM_getValue(BD_LOOT_TRACK_KEY, EMPTY_LOOT);
+}
+
+function getItemRewards() {
+    return Array.from($("#bd_rewardsloot td")).filter((td) => {
+        return !td.querySelector("img").getAttribute("src").includes("images.neopets.com/reg/started_bagofnp.gif")
+    })
+}
+
+function getNpRewards() {
+    return Array.from($("#bd_rewardsloot td > img")).find((img) => {
+        return img.getAttribute("src").includes("images.neopets.com/reg/started_bagofnp.gif")
+    })?.getAttribute("alt")?.split(" ")?.[0] || 0
+}
+
+function updateLootList(lootList, items) {
+    if (lootList === undefined) lootList = {} //to be extra cautious
+
+    // grabs the item names and adds to earned item list
+    for (const td of items) {
+        let name = td.querySelector("span").innerHTML
+        // increments the item's count
+        if (lootList.hasOwnProperty(name)) {
+            lootList[name] += 1
+        } else {
+            lootList[name] = 1
         }
     }
-    return res
+
+    return lootList
 }
 
-//reads the reward screen
 function handleRewards() {
     const lootObs = new MutationObserver(_ => {
         lootObs.disconnect()
-        let rewardCount = countRewards() //counts and records rewards earned
+        let earnedRewards = countRewards() //counts and records rewards earned
 
         if (LOOT_DISPLAY) {
             addLootBars()
             addRewardList()
 
-            if (rewardCount === 0) {
+            if (!earnedRewards) {
                 addEmptyDisplay()
             }
         }
@@ -1299,29 +1458,6 @@ function handleRewards() {
         addObeliskContribution()
     })
     lootObs.observe($("#arenacontainer #bdPopupGeneric-winnar #bd_rewards")[0], {childList: true, subtree: true})
-}
-
-const HIGH_VALUE_LIST = ["armoured negg", "frozen negg", "bubbling fungus", "chocolate ice cream"]
-const RED_LIST = ["cui codestone", "kew codestone", "mag codestone", "sho codestone", "vux codestone", "zed codestone"]
-
-function rewardSort(name) {
-    name = name.toLowerCase()
-    if (name.includes("nerkmid")) return 50
-    else if (HIGH_VALUE_LIST.includes(name)) return 40
-    else if (name.includes("codestone")) {
-        if (RED_LIST.includes(name)) return 30
-        else return 20
-    } else if (name.includes("dubloon coin")) return 10 + dubloonSort(name)
-    else if (name.includes("neocola token")) return 10
-    else return 0
-}
-
-function dubloonSort(name) {
-    if (name === "one dubloon coin") return 1
-    else if (name === "two dubloon coin") return 2
-    else if (name === "five dubloon coin") return 3
-    else if (name === "ten dubloon coin") return 4
-    else return 0
 }
 
 function addRewardList() {
@@ -1386,23 +1522,6 @@ function addRewardList() {
     console.log("[BD+] Displaying prize table.")
 }
 
-//lets have some fun with the no reward display
-const SAD_ITEMS = [
-    "https://images.neopets.com/items/hfo_depressed_potato.gif",
-    "https://images.neopets.com/items/plu_grey_kacheek.gif",
-    "https://images.neopets.com/items/petpet_frowny.gif",
-    "https://images.neopets.com/items/grey_ghostkerchief.gif",
-    "https://images.neopets.com/items/boo_jubjub_tellmewhy.gif",
-    "https://images.neopets.com/items/cirrus_grey.gif",
-    "https://images.neopets.com/items/plu_grundo_grey.gif",
-    "https://images.neopets.com/items/foo_grey_toast.gif"
-]
-const SAD_BGS = [
-    "https://outfits.openneo-assets.net/outfits/2908566/v/1693339777/150.png",
-    "https://outfits.openneo-assets.net/outfits/2908567/v/1693339872/150.png",
-    "https://outfits.openneo-assets.net/outfits/2908568/v/1693339886/150.png"
-
-]
 
 function addEmptyDisplay() {
     if (hitItemLimit()) var msg = "You can't get any more items. :("
@@ -1415,10 +1534,6 @@ function addEmptyDisplay() {
         </div>
     `
     $("#bd_rewardsloot > tbody > tr")[0].appendChild(td)
-}
-
-function getRecordedLoot() {
-    return GM_getValue(BD_LOOT_TRACK_KEY, EMPTY_LOOT);
 }
 
 //creates the loot progress bars on the victory screen
@@ -1474,130 +1589,24 @@ function addLootBars() {
     console.log("[BD+] Added loot bar display and hid redundant messages.")
 }
 
-const EMPTY_LOOT = {
-    itemCount: 0,
-    items: {},
-    np: 0,
-    date: null
+function rewardSort(name) {
+    name = name.toLowerCase()
+    if (name.includes("nerkmid")) return 50
+    else if (HIGH_VALUE_LIST.includes(name)) return 40
+    else if (name.includes("codestone")) {
+        if (RED_LIST.includes(name)) return 30
+        else return 20
+    } else if (name.includes("dubloon coin")) return 10 + dubloonSort(name)
+    else if (name.includes("neocola token")) return 10
+    else return 0
 }
 
-function isEndOfPlotBattleWaves() {
-    return $(".end_ack.collect").is(":visible");
-}
-
-function getTvwTrack() {
-    return GM_getValue(BD_TVW_TRACK_KEY, {
-        completedBattlePoints: 0,
-        inProgressBattlePoints: 0,
-        inProgressItems: [],
-        inProgressNp: 0
-    });
-}
-
-function countRewards() {
-    if (isTVW) {
-        // The plot behaves weirdly, because it works with "waves" of enemies that you fight back to back, with rewards "granted"
-        // at the end of the final wave. It seems TNT enabled this "wave" mechanism simply by not showing the popup dialog or "Collect Winnings"
-        // button that normally appears at the end of a battle until the final enemy is defeated.
-        // However, the HTML for this dialog as well as the button still exists in the DOM,
-        // so if we only look for them to be present, then we end up double-counting
-        // plot points when they share the "total" at the end of all 4 or 5 battles. To solve this,
-        // we'll only add plot points based on what is shown when the Collect button is NOT visible.
-        // It is better to add them up after each battle, since a full wave of enemies could be disrupted by various means,
-        // meaning you could have a scenario when the final dialog isn't shown to the user. In this scenario, waiting until
-        // the end to calculate the points earned could result in not correctly adding points that have been granted.
-        let tvwTrack = getTvwTrack()
-        let ppEarned = getPlotPointsAwarded()
-        let itemsWon = getItemRewards()
-        let npWon = getNpRewards()
-
-        if (!isEndOfPlotBattleWaves()) {
-            tvwTrack.inProgressBattlePoints += ppEarned
-            if (itemsWon && itemsWon.length > 0) {
-                tvwTrack.inProgressItems = Array.concat(itemsWon, tvwTrack.inProgressItems)
-            }
-            tvwTrack.inProgressNp = npWon
-            GM_setValue(BD_TVW_TRACK_KEY, tvwTrack)
-            // Always record the items and np won as we go in our main loot track
-            console.log(`[BD+] Recording in progress values in TVW Track: Points = ${tvwTrack.inProgressBattlePoints}, Items = ${tvwTrack.inProgressItems}, NP = ${tvwTrack.inProgressNp}`)
-            return ppEarned > 0 || recordLoot(itemsWon, npWon)
-        }
-
-        // We have to get the diff now, between what we've already recorded and what was earned by defeating the last enemy
-        let itemsWonInLastWave = itemsWon.filter(function (v) {
-            return !this.get(v) || !this.set(v, this.get(v) - 1);
-        }, tvwTrack.inProgressItems.reduce((acc, v) => acc.set(v, (acc.get(v) || 0) + 1), new Map()));
-        console.log(`[BD+] Items won in last wave: ${itemsWonInLastWave}`)
-        let npWonInLastWave = npWon - tvwTrack.inProgressNp
-        console.log(`[BD+] Np won in last wave: ${npWonInLastWave}`)
-
-        tvwTrack.completedBattlePoints += ppEarned
-        // Reset our in-progress; we no longer need to keep track of these
-        tvwTrack.inProgressItems = []
-        tvwTrack.inProgressNp = 0
-        tvwTrack.inProgressBattlePoints = 0
-        GM_setValue(BD_TVW_TRACK_KEY, tvwTrack)
-        console.log(`[BD+] Points won in completed plot battle: ${ppEarned} were added to total: ${tvwTrack.completedBattlePoints}`)
-
-        return ppEarned > 0 || recordLoot(itemsWonInLastWave, npWonInLastWave)
-    } else {
-        return recordLoot(getItemRewards(), getNpRewards())
-    }
-}
-
-function recordLoot(items, np) {
-    let loot = getRecordedLoot()
-
-    if (items.length > 0 || np > 0) {
-        loot.items = updateLootList(loot.items, items)
-        loot.itemCount += items.length
-        loot.np = Number(loot.np) + Number(np) //because js is fucky, np is grabbed as a string so we have to make them numbers first
-    }
-
-    loot.date = getDate() //records current date
-    GM_setValue(BD_LOOT_TRACK_KEY, loot)
-    console.log(`[BD+] ${items.length} item(s) and ${np} NP earned, loot recorded.`)
-
-    return items.length > 0 || np > 0
-}
-
-function getPlotPointsAwarded() {
-    let pp = $("#bd_rewards > p:nth-child(4) > span")
-
-    if (pp.length > 0) {
-        return Number(pp[0].innerHTML.split(" ")[0])
-    }
-
-    return 0
-}
-
-function getItemRewards() {
-    return Array.from($("#bd_rewardsloot td")).filter((td) => {
-        return !td.querySelector("img").getAttribute("src").includes("images.neopets.com/reg/started_bagofnp.gif")
-    })
-}
-
-function getNpRewards() {
-    return Array.from($("#bd_rewardsloot td > img")).find((img) => {
-        return img.getAttribute("src").includes("images.neopets.com/reg/started_bagofnp.gif")
-    })?.getAttribute("alt")?.split(" ")?.[0] || 0
-}
-
-function updateLootList(lootList, items) {
-    if (lootList === undefined) lootList = {} //to be extra cautious
-
-    // grabs the item names and adds to earned item list
-    for (const td of items) {
-        let name = td.querySelector("span").innerHTML
-        // increments the item's count
-        if (lootList.hasOwnProperty(name)) {
-            lootList[name] += 1
-        } else {
-            lootList[name] = 1
-        }
-    }
-
-    return lootList
+function dubloonSort(name) {
+    if (name === "one dubloon coin") return 1
+    else if (name === "two dubloon coin") return 2
+    else if (name === "five dubloon coin") return 3
+    else if (name === "ten dubloon coin") return 4
+    else return 0
 }
 
 function hitItemLimit() {
@@ -1612,35 +1621,9 @@ function highlightItemLimit() {
     }
 }
 
-//obelisk limits apply if you've done less than 10 obelisk fights and you've collected your daily prizes
-function limitObelisk() {
-    return isObelisk() && ((getObeliskTrack().count >= 10 && hitItemLimit()) || !LOOSE_OBELISK_RESTRICTIONS)
-}
-
-function addObeliskContribution() {
-    let plural;
-    let guild = isObelisk()
-    if (guild) {
-        let div = document.createElement("div")
-        div.style = "border-radius: 1px; position:absolute; display:block; bottom: -82px; text-align: center; height: 64px; z-index: 1; right: 0px; border: 2px solid black; background-color: lightgrey; background-image: url(https://i.imgur.com/VttRWYx.png); background-size:100%; background-position: bottom;"
-        let msg = div.appendChild(document.createElement("div"))
-        msg.style = "background-color:rgba(255,255,255,0.9); padding: 6px; height: 30px; margin: 13px; border-radius: 1px;"
-        let data = GM_getValue(OBELISK_TRACK_KEY, {count: 0, points: 0, date: -1})
-        if (guild.slice(-1) === 's') {
-            plural = "have";
-        } else plural = "has"
-        msg.innerHTML = `<b>Your contributions against The ${guild} ${plural} been recorded.</b><br>
-        <b>Total Battles: ${data.count} | Total Points: ${data.points} ( +${obeliskContribution} )</b>`
-        $("#bdPopupGeneric-winnar")[0].appendChild(div)
-    }
-}
-
-function is2Player() {
-    let p2 = $("#arenacontainer #playground #gQ_scenegraph #p2 #p2image")[0]
-    return p2.style.backgroundImage.includes("pets.neopets.com");
-}
-
-//helpers
+//===========
+// helpers
+//===========
 function clone(data) {
     return JSON.parse(JSON.stringify(data))
 }
@@ -1664,6 +1647,32 @@ function getItemURL(node, ability = false) {
     }
 }
 
+//=======================
+// UI Management
+//=======================
+
+const red = [180, 75, 75]
+const blue = [107, 168, 237]
+const green = [123, 199, 88]
+const yellow = [249, 204, 14]
+const magenta = [179, 89, 212]
+const gray = [99, 99, 99]
+const colormap = [red, blue, green, magenta, yellow]
+
+const nullset = {set: null, name: null, default: null}
+const nullautofill = {turn1: null, turn2: null, default: null}
+
+const ROW_COLORS = {
+    1: "#a9bad4",
+    2: "#cce9eb",
+    3: "#cae3cf",
+    4: "#e3cbc8",
+    5: "#9fb9cc",
+    6: "#d6cbc1",
+    7: "#e6e4d8",
+    8: "#dcd3e3"
+}
+
 function getHex(color) {
     let hex = "#"
     color.forEach(c => {
@@ -1671,11 +1680,6 @@ function getHex(color) {
     })
     return hex
 }
-
-
-//==========
-// style css
-//==========
 
 function addArenaCSS() {
     //bar
