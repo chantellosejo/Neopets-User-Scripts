@@ -1,10 +1,11 @@
 // ==UserScript==
 // @name         JellyNeo Direct Dailies Links
 // @namespace    http://tampermonkey.net/
-// @version      2024-07-2101
+// @version      1.1
 // @description  Love JellyNeo's Dailies list, but hate that some of the links take extra work (like unnecessary clicks)? Skip the trouble and go straight to the end!
-// @author       darknstormy
+// @author       chanakin
 // @match        https://www.jellyneo.net/index.php?go=dailies
+// @match        https://www.jellyneo.net/?go=dailies
 // @icon         https://www.google.com/s2/favicons?sz=64&domain=jellyneo.net
 // @grant        none
 // @license      MIT
@@ -19,6 +20,8 @@ const TEST_YOUR_STRENGTH_NO_FLASH = "http://www.neopets.com/halloween/strtest/pr
 const BAGATELLE_NO_FLASH = "http://www.neopets.com/halloween/process_bagatelle.phtml"
 const CORKGUN_NO_FLASH = "http://www.neopets.com/halloween/process_corkgun.phtml"
 const SECRET_LAB = "https://www.neopets.com/lab2.phtml"
+const METEOR = "https://www.neopets.com/moon/meteor.phtml?getclose=1"
+const FOOD_CLUB_BETS = "https://www.reddit.com/r/neopets/search/?q=food%20club&restrict_sr=1&sort=new"
 
 replaceLinks();
 
@@ -32,4 +35,6 @@ function replaceLinks() {
     $("a[href='https://www.neopets.com/halloween/bagatelle.phtml']").attr("href", BAGATELLE_NO_FLASH);
     $("a[href='https://www.neopets.com/halloween/corkgun.phtml']").attr("href", CORKGUN_NO_FLASH)
     $("a[href='https://www.neopets.com/lab.phtml']").attr("href", SECRET_LAB)
+    $("a[href='https://www.neopets.com/moon/meteor.phtml']").attr("href", METEOR)
+    $("a[href='https://www.neopets.com/pirates/foodclub.phtml?type=bet']").attr("href", FOOD_CLUB_BETS)
 }
