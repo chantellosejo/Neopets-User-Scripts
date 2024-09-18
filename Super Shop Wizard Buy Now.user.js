@@ -1,12 +1,12 @@
 // ==UserScript==
 // @name         Neopets Super Shop Wizard Buy Now!
 // @namespace    neopets.com
-// @version      1.0
+// @version      1.1
 // @description  Whenever you run a SSW search, this will automatically open the first result in a tab for you!
 // @author       darknstormy
 // @match        http*://*.neopets.com/*
-// @grant        none
 // @license      MIT
+// @grant        none
 // ==/UserScript==
 
 // Hello Neopian! For best results, I recommend changing your browser setting to allow tabs
@@ -18,26 +18,47 @@
 (function() {
     'use strict';
 
-    listenForSswSearches()
+    $("#ssw-button-search").on('click', () => {
+        $(this).click()
+        listenForBetaSswSearches()
+    })
 
     $("#ssw-button-resubmit").on('click', () => {
         $(this).click()
-        listenForSswSearches()
+        listenForBetaSswSearches()
     })
 
     $("#ssw-button-new-search").on('click', () => {
         $(this).click()
-        listenForSswSearches()
+        listenForBetaSswSearches()
+    })
+
+    $("#ssw-tabs-1 #button-search").on('click', () => {
+        $(this).click()
+        listenForOgSswSearches()
+    })
+
+
+    $("#results_buttons #button-resubmit").on('click', () => {
+        $(this).click()
+        listenForOgSswSearches()
+    })
+
+
+    $("#results_buttons #button-new-search").on('click', () => {
+        $(this).click()
+        listenForOgSswSearches()
     })
 })();
 
-function listenForSswSearches() {
-    // Beta site
+function listenForBetaSswSearches() {
     waitForElement(".ssw-results-grid").then((searchResults) => {
         searchResults.find("a:first")[0].click()
     })
+}
 
-    // OG Site
+function listenForOgSswSearches() {
+     // OG Site
     waitForElement("#ssw-tabs-2 #results_table").then((searchResults) => {
         searchResults.find("a:first")[0].click()
     })
