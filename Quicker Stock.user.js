@@ -737,10 +737,6 @@ const GIANT_SPACE_FUNGUS_SELL_ITEMS = [
     "Blue Neocola Token",
     "Green Neocola Token",
     "Scroll of Dark Nova",
-]
-
-const GIANT_SPACE_FUNGUS_DEPOSIT_ITEMS = [
-    "Bubbling Fungus",
     "Aluminium Nerkmid",
     "Average Nerkmid",
     "Basic Golden Nerkmid",
@@ -761,6 +757,18 @@ const GIANT_SPACE_FUNGUS_DEPOSIT_ITEMS = [
     "Ultra Golden Nerkmid",
     "Ultra Nerkmid",
     "Ultra Platinum Nerkmid"
+]
+
+const GIANT_SPACE_FUNGUS_DEPOSIT_ITEMS = [
+    "Bubbling Fungus",
+    "Weak Bottled Light Faerie",
+    "Unidentifiable Weak Bottled Faerie",
+    "Weak Bottled Air Faerie",
+    "Weak Bottled Dark Faerie",
+    "Weak Bottled Earth Faerie",
+    "Weak Bottled Fire Faerie",
+    "Weak Bottled Light Faerie",
+    "Weak Bottled Water Faerie"
 ]
 
 const GRAVE_DANGER_RECYCLING_ITEMS = [
