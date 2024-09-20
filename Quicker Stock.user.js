@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Neopets Quicker-stock
 // @namespace    neopets
-// @version      1.6
+// @version      1.7
 // @description  Highlights and selects pre-determined option for items on the Quick Stock Page based on their categorization.
 //               Currently covers codestones Giant Space Fungus drops, R102 - 179 daily drop items from JellyNeo's Recycling Strategies Guide (https://www.jellyneo.net/?go=faerie_festival&year=2023&id=r102_strategies)
 //               The Coincidence quest items, TVW Battledome & NeoHospital Pools, and rare valuable items (paint brushes, morphing potions, transmog potions, neggs, dubloons),
