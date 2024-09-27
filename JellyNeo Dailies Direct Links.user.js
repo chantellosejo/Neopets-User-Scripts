@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         JellyNeo Direct Dailies Links
 // @namespace    http://tampermonkey.net/
-// @version      1.1
+// @version      1.2
 // @description  Love JellyNeo's Dailies list, but hate that some of the links take extra work (like unnecessary clicks)? Skip the trouble and go straight to the end!
 // @author       chanakin
 // @match        https://www.jellyneo.net/index.php?go=dailies
@@ -22,6 +22,7 @@ const CORKGUN_NO_FLASH = "http://www.neopets.com/halloween/process_corkgun.phtml
 const SECRET_LAB = "https://www.neopets.com/lab2.phtml"
 const METEOR = "https://www.neopets.com/moon/meteor.phtml?getclose=1"
 const FOOD_CLUB_BETS = "https://www.reddit.com/r/neopets/search/?q=food%20club&restrict_sr=1&sort=new"
+const TVW_ESSENCE_COLLECTION = "https://www.jellyneo.net/?go=the_void_within&id=essence_collection"
 
 replaceLinks();
 
@@ -37,4 +38,5 @@ function replaceLinks() {
     $("a[href='https://www.neopets.com/lab.phtml']").attr("href", SECRET_LAB)
     $("a[href='https://www.neopets.com/moon/meteor.phtml']").attr("href", METEOR)
     $("a[href='https://www.neopets.com/pirates/foodclub.phtml?type=bet']").attr("href", FOOD_CLUB_BETS)
+    $("a[href='https://www.neopets.com/tvw/']").attr("href", TVW_ESSENCE_COLLECTION)
 }
