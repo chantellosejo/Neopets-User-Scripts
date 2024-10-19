@@ -16,6 +16,39 @@ const HARD_DIFFICULTY = ".tvw-fight_difficulty.extremeButton"
 
 // CHANGE THIS IF YOU WANT TO HAVE A DIFFERENT DIFFICULTY LEVEL PRE-SELECTED!! Choose one of the constants above :)
 const PRE_SELECT_DIFFICULTY = HARD_DIFFICULTY
+const BD_PET_NAME = "PrincessKu"
 
 $(PRE_SELECT_DIFFICULTY).trigger('click')
 $(".tvw-act_container.minimize:not(.locked)").toggleClass('minimize', 'maximize')
+
+waitForElement("#tvwBattleConfirmationPopup").then((popup) => {
+    let readyButton = popup.find(":button").last()
+    if (readyButton) {
+        readyButton.click()
+    }
+    waitForElement("#tvw-fight_petsListContainer div[data-name='" + BD_PET_NAME + "']").then((pet) => {
+        pet.click()
+        $(".tvw-battle_continueBattle").trigger("click")
+    })
+})
+
+function waitForElement(selector) {
+    return new Promise(resolve => {
+        if ($(selector).is(":visible")) {
+            return resolve($(selector));
+        }
+
+        const observer = new MutationObserver(mutations => {
+            if ($(selector).is(":visible")) {
+                observer.disconnect();
+                resolve($(selector));
+            }
+        })
+
+        // If you get "parameter 1 is not of type 'Node'" error, see https://stackoverflow.com/a/77855838/492336
+        observer.observe(document.body, {
+            childList: true,
+            subtree: true
+        })
+    })
+}
